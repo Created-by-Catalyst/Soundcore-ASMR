@@ -4,9 +4,13 @@ using System.IO;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using UnityEngine.Networking;
 
 public class AudioHandler : MonoBehaviour
 {
+    public GlobalManager globalManager;
+    public TMP_Text timerText;
+
     // --- Public Configuration ---
     public TMP_Text buttonText; // Link this to your button's text component
 
@@ -18,6 +22,7 @@ public class AudioHandler : MonoBehaviour
     private AudioClip recordedClip;
     private string microphoneName;
     private bool isRecording = false;
+
 
     void Start()
     {
@@ -55,7 +60,18 @@ public class AudioHandler : MonoBehaviour
 
     private IEnumerator StopRecordingAndSaveAfterDelay(float delay)
     {
-        yield return new WaitForSeconds(delay);
+
+        float recordingProgress = delay;
+
+        while (recordingProgress > 0)
+        {
+            recordingProgress -= Time.deltaTime;
+            timerText.text = $"00:{recordingProgress:00}";
+            yield return null;
+        }
+
+        timerText.text = "00:00";
+
 
         // Only proceed if recording is still active (user didn't press stop early)
         if (isRecording)
@@ -98,6 +114,9 @@ public class AudioHandler : MonoBehaviour
             Debug.LogError("Failed to save audio file.");
             if (buttonText != null) buttonText.text = "SAVE FAILED";
         }
+
+
+        globalManager.NextPage();
     }
 
     // --- Utility: Trims the AudioClip to the actual number of recorded samples ---
@@ -119,6 +138,89 @@ public class AudioHandler : MonoBehaviour
         Destroy(clip); // Clean up the old, longer clip
         return newClip;
     }
+
+
+
+
+
+
+
+
+
+
+
+
+    //UPLOAD------------------------------------------------------------------------------------------
+
+
+
+    private const string url = "https://www.mysoundcore.com/api/upload";
+
+    private const string WavFileName = "20251029111143.wav";
+
+    public void StartUpload()
+    {
+        StartCoroutine(UploadWavFile());
+    }
+
+    private IEnumerator UploadWavFile()
+    {
+        string persistentPath = Application.persistentDataPath;
+
+        string[] wavFiles = Directory.GetFiles(persistentPath, "*.wav");
+
+        if (wavFiles.Length == 0)
+        {
+            Debug.LogWarning($"No WAV files found in: {persistentPath}");
+            yield break;
+        }
+
+        // 2. Find the most recently written file using LINQ
+        string latestFilePath = wavFiles
+            // Convert each file path string into a FileInfo object to access LastWriteTime
+            .Select(f => new FileInfo(f))
+            .OrderByDescending(f => f.LastWriteTime)
+            .First()
+            .FullName;
+
+        Debug.Log($"Found latest file: {latestFilePath}");
+
+
+        byte[] wavBytes = File.ReadAllBytes(latestFilePath);
+
+        IMultipartFormSection fileSection = new MultipartFormFileSection(
+            "file",
+            wavBytes,
+            WavFileName,
+            "audio/wav"
+        );
+
+        var formData = new System.Collections.Generic.List<IMultipartFormSection> {
+            fileSection
+        };
+
+        //POST
+        using (UnityWebRequest www = UnityWebRequest.Post(url, formData))
+        {
+            Debug.Log($"Starting upload to: {url}");
+
+
+            yield return www.SendWebRequest();
+
+            if (www.result != UnityWebRequest.Result.Success)
+            {
+                Debug.LogError($"Upload failed: {www.error}");
+                Debug.LogError($"Response code: {www.responseCode}");
+            }
+            else
+            {
+                Debug.Log("WAV file uploaded successfully!");
+                Debug.Log($"Server Response: {www.downloadHandler.text}");
+            }
+        }
+    }
+
+
 }
 
 public static class WaveFileWriter
@@ -213,4 +315,9 @@ public static class WaveFileWriter
     {
         stream.Write(BitConverter.GetBytes(value), 0, 2);
     }
+
+
+    
+
+
 }
