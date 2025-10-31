@@ -72,6 +72,9 @@ public class GlobalManager : MonoBehaviour
             case 2:
                 audioHandler.StartRecording();
                 break;
+                case 3:
+                audioHandler.StartFullUpload();
+                break;
             case 4:
                 StartCoroutine(LoadSound());
                 break;
