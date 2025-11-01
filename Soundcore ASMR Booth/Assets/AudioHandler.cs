@@ -6,6 +6,9 @@ using System.Text;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
+using ZXing;
+using ZXing.QrCode;
 
 public class AudioHandler : MonoBehaviour
 {
@@ -16,7 +19,7 @@ public class AudioHandler : MonoBehaviour
     public TMP_Text buttonText; // Link this to your button's text component
 
     [Header("Recording Settings")]
-    int maxRecordingTimeSeconds = 5; // The required recording duration
+    int maxRecordingTimeSeconds = 25; // The required recording duration
     public int sampleRate = 44100; // Standard audio sample rate
 
     // --- Private Fields ---
@@ -24,6 +27,33 @@ public class AudioHandler : MonoBehaviour
     private string microphoneName;
     private bool isRecording = false;
 
+    [SerializeField]
+    RawImage qrImage;
+
+
+    private static Color32[] Encode(string textForEncoding,
+  int width, int height)
+    {
+        var writer = new BarcodeWriter
+        {
+            Format = BarcodeFormat.QR_CODE,
+            Options = new QrCodeEncodingOptions
+            {
+                Height = height,
+                Width = width
+            }
+        };
+        return writer.Write(textForEncoding);
+    }
+
+    public Texture2D generateQR(string text)
+    {
+        var encoded = new Texture2D(256, 256);
+        var color32 = Encode(text, encoded.width, encoded.height);
+        encoded.SetPixels32(color32);
+        encoded.Apply();
+        return encoded;
+    }
 
     void Start()
     {
@@ -388,10 +418,16 @@ public class AudioHandler : MonoBehaviour
 
         CommitResponse commitResponse = JsonUtility.FromJson<CommitResponse>(commitWww.downloadHandler.text);
         Debug.Log($"Upload Complete! Status: {commitResponse.status}. Final URL: {commitResponse.shareUrl}");
+
+
+        qrImage.texture = generateQR(commitResponse.shareUrl);
     }
 
 
 }
+
+
+
 
 public static class WaveFileWriter
 {

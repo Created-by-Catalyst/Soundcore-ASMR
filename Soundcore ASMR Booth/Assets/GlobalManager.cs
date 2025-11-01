@@ -3,6 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using QRCoder;
 
 public class GlobalManager : MonoBehaviour
 {
@@ -23,6 +24,7 @@ public class GlobalManager : MonoBehaviour
     [SerializeField]
     TMP_Text qrTimerText;
 
+
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
@@ -34,6 +36,7 @@ public class GlobalManager : MonoBehaviour
 
         pages[0].alpha = 1;
     }
+
 
     public void NextPage()
     {
@@ -72,10 +75,8 @@ public class GlobalManager : MonoBehaviour
             case 2:
                 audioHandler.StartRecording();
                 break;
-                case 3:
-                audioHandler.StartFullUpload();
-                break;
             case 4:
+                audioHandler.StartFullUpload();
                 StartCoroutine(LoadSound());
                 break;
             case 5:
@@ -94,6 +95,22 @@ public class GlobalManager : MonoBehaviour
         }
     }
 
+    public TMP_Text timerText;
+    public void RecordAgain()
+    {
+
+        pages[pageNum].alpha = 0;
+        pages[pageNum].interactable = false;
+        pages[pageNum].blocksRaycasts = false;
+
+        timerText.text = "00:25";
+
+        pageNum = 1;
+
+        pages[pageNum].alpha = 1;
+        pages[pageNum].interactable = true;
+        pages[pageNum].blocksRaycasts = true;
+    }
 
     IEnumerator QRTimer()
     {
@@ -111,9 +128,18 @@ public class GlobalManager : MonoBehaviour
         NextPage();
     }
 
+
+    void GenerateQR()
+    {
+       QRCodeGenerator qrGenerator = new QRCodeGenerator();
+       QRCodeData qrCodeData = qrGenerator.CreateQrCode("Hello world!", QRCodeGenerator.ECCLevel.Q);
+       // UnityQRCode qrCode = new UnityQRCode(qrCodeData);
+       // Texture2D qrCodeAsTexture2D = qrCode.GetGraphic(20);
+    }
+
 IEnumerator LoadSound()
     {
-
+        GenerateQR();
         float loadingProgress = 0;
 
         float loadingSpeed = 0.2f;
